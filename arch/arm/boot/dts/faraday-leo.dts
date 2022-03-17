@@ -1702,20 +1702,13 @@
 			interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&pclk>;
 			clock-names = "pclk";
-			status = "okay";
+			status = "disabled";
 			at24c08@50{
 				 compatible = "atmel,eeprom";
 				 reg = <0x50>;
 				 interrupts = <7 1>;
 				 interrupts-parent = <&gic>;
 			};
-#if 0                     
-			rtc@32 {
-				compatible = "epson,rx8025";
-				reg = <0x32>;
-				second_interrput = <&gpio1 26 GPIO_ACTIVE_LOW>; 
-			};
-#endif
 		};
 		
 		i2c2: i2c@55700000 {
@@ -1728,14 +1721,13 @@
 			interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&pclk>;
 			clock-names = "pclk";
-			status = "disabled";
-#if 0
-			wm8731: wm8731@1b {
-				#sound-dai-cells = <0>;
-				compatible = "wlf,wm8731";
-				reg = <0x1b>;
+			status = "okay";
+			
+			rtc@32 {
+				compatible = "epson,rx8025";
+				reg = <0x32>;
+				//second_interrput = <&gpio1 26 GPIO_ACTIVE_LOW>; 
 			};
-#endif
 		};
 		
 		i2c3: i2c@56f00000 {

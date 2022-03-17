@@ -99,17 +99,17 @@ static void leo_set_frequency(struct faraday_cpu_dvfs_info *info, unsigned int i
 	writel(0x00000000, info->sysc_base + 0xB4);
 
 	val = readl(info->sysc_base + 0x28);
-        printk("$$$$ inttrupt  val:%x \n",val);
+//        printk("$$$$ inttrupt  val:%x \n",val);
 
 	val = readl(info->sysc_base + 0x30) & ~(0x0F << 4);
-	printk("$$$$ change before: val:%x,index: %d\n",val,index);
+//	printk("$$$$ change before: val:%x,index: %d\n",val,index);
 
  	val = readl(info->sysc_base + 0x20); 
-	printk("$$$$ fcs before: val:%x \n",val);
+//	printk("$$$$ fcs before: val:%x \n",val);
         val |= (0x01 << 6); 
         writel(val, info->sysc_base + 0x20);
 	val = readl(info->sysc_base + 0x20);               
-        printk("$$$$ fcs after: val:%x \n",val);
+//      printk("$$$$ fcs after: val:%x \n",val);
 
 	switch (index) {
 		case L0: //cpu 100000 KHz
@@ -134,7 +134,7 @@ static void leo_set_frequency(struct faraday_cpu_dvfs_info *info, unsigned int i
 			break;
 	}
 	val = readl(info->sysc_base + 0x30) & ~(0x0F << 4);
-	printk("$$$$change after: val:%x\n",val);	
+//	printk("$$$$change after: val:%x\n",val);	
 
 	writel(0x60000040, info->sysc_base + 0x20);
 
