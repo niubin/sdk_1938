@@ -467,6 +467,7 @@
 		pinctrl_ftgmac030_mii: pinctrl_ftgmac030_mii {
 			scu010,function = <LEO_MUX_FTGMAC030_MII>;
 			scu010,pins = <
+#if 0
 				LEO_PIN_X_MII_COL
 				LEO_PIN_X_MII_CRS
 				LEO_PIN_X_MII_MDC
@@ -485,6 +486,7 @@
 				LEO_PIN_X_MII_TX_CK
 				LEO_PIN_X_MII_TX_EN
 				LEO_PIN_X_MII_TX_ER
+#endif
 			>;
 		};
 		
@@ -590,14 +592,14 @@
 			scu010,pins = <
 				//LEO_PIN_X_MII_MDIO       //GPIO1[0] - Mode7 / GPIO1[26] - Mode1 / Mode3
 				//LEO_PIN_X_EMMC1_D7       //GPIO1[0] - Mode1 / Mode3 / Mode4 / Mode5 / Mode7
-				//LEO_PIN_X_MII_RX_CK      //GPIO1[1] - Mode7
+				LEO_PIN_X_MII_RX_CK      //GPIO1[1] - Mode7
 				//LEO_PIN_X_EMMC1_D6       //GPIO1[1] - Mode1 / Mode3 / Mode4 / Mode5 / Mode7
 				//LEO_PIN_X_EMMC1_D5       //GPIO1[2] - Mode1 / Mode3 / Mode4 /Mode5 / Mode7
-				//LEO_PIN_X_MII_RXD_2      //GPIO1[2] - Mode7
-				//LEO_PIN_X_MII_RXD_3      //GPIO1[3] - Mode7
+				LEO_PIN_X_MII_RXD_2      //GPIO1[2] - Mode7
+				LEO_PIN_X_MII_RXD_3      //GPIO1[3] - Mode7
 				//LEO_PIN_X_EMMC1_D4       //GPIO1[3] - Mode1 / Mode3 / Mode4 / Mode5 / Mode7
 				//LEO_PIN_X_EMMC1_D3       //GPIO1[4] - Mode1 / Mode3 / Mode4 / Mode5 / Mode7
-				//LEO_PIN_X_MII_TX_CK      //GPIO1[4] - Mode7
+				LEO_PIN_X_MII_TX_CK      //GPIO1[4] - Mode7
 				//LEO_PIN_X_RMII0_TXD_0    //GPIO1[5] - Mode7
 				//LEO_PIN_X_EMMC1_D2       //GPIO1[5] - Mode1 / Mode3 / Mode4 / Mode5 / Mode7
 				//LEO_PIN_X_EMMC1_D1       //GPIO1[6] - Mode1 / Mode3 / Mode4 / Mode5 / Mode7
@@ -619,7 +621,7 @@
 				//LEO_PIN_X_RGMII_MDC      //GPIO1[13] - Mode3 / Mode5 / Mode7 / GPIO1[25] - Mode2
 				//LEO_PIN_X_UART8_RX_h     //GPIO1[14] - Mode6
 				//LEO_PIN_X_RMII0_MDIO      //GPIO1[14] - Mode3 / Mode5 / Mode7
-				//LEO_PIN_X_MII_TX_ER      //GPIO1[15] - Mode7
+				LEO_PIN_X_MII_TX_ER      //GPIO1[15] - Mode7
 				//LEO_PIN_X_MII_TXD_2      //GPIO1[16] - Mode7
 				//LEO_PIN_X_MII_TXD_3      //GPIO1[17] - Mode7
 				//LEO_PIN_X_MII_CRS        //GPIO1[18] - Mode7
@@ -1019,6 +1021,7 @@
 			no-loopback-test;
 			interrupts = <GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>;
 			serial = <1>;
+			rs485-dir-gpios = <34>;
 			status = "okay";
 		};
 		
@@ -1033,7 +1036,7 @@
 			no-loopback-test;
 			interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
 			serial = <2>;
-			rs485-dir-gpios = <19>;
+			rs485-dir-gpios = <35>;
 			status = "okay";
 		};
 		
@@ -1048,7 +1051,7 @@
 			no-loopback-test;
 			interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
 			serial = <3>;
-			rs485-dir-gpios = <20>;
+			rs485-dir-gpios = <33>;
 			//led-gpios = <21>;
 			status = "okay";
 		};
@@ -1114,7 +1117,8 @@
 			pinctrl-0 = <&pinctrl_ftuart010_7>;
 			pinctrl-names = "sleep";
 			serial = <7>;
-			status = "disabled";
+			rs485-dir-gpios = <36>;
+			status = "okay";
 		};
 		
 		uart8: uart_sir@56c00000 {
@@ -1507,7 +1511,7 @@
 			pinctrl-0 = <&pinctrl_ftgmac030_mii>;
                         pinctrl-names = "default";
 			interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
-			status = "okay";
+			status = "disabled";
 			fixed-link { 
            			speed = <100>;
 		  	        full-duplex;
@@ -1739,7 +1743,6 @@
 			clocks = <&pclk>;
 			clock-names = "pclk";
 			status = "disabled";
-		
 		};
 		
 		i2c4: i2c@57000000 {
