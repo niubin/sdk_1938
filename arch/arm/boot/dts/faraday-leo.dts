@@ -1476,12 +1476,10 @@
 			pinctrl-names = "default";
 			interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
 			status = "okay";
-#if 0
      			fixed-link { 
            			speed = <1000>;
 		  	        full-duplex;
 		        };
-#endif
 		};
 		
 		gmac1: gmac@542000000 {
@@ -1742,7 +1740,14 @@
 			interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&pclk>;
 			clock-names = "pclk";
-			status = "disabled";
+			status = "okay";
+			
+			ksz9896@0 {
+				compatible = "microchip,ksz9896";
+				phy-reset-gpios = <61>;
+				reg = <0x5f>;
+			};
+		
 		};
 		
 		i2c4: i2c@57000000 {

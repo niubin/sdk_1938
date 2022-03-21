@@ -2624,7 +2624,7 @@ static void ftgmac030_configure(struct ftgmac030_ctrl *ctrl)
 		maccr |= FTGMAC030_MACCR_FULLDUP;
 	else
 		maccr &= ~FTGMAC030_MACCR_FULLDUP;
-	
+
 	iow32(FTGMAC030_REG_MACCR, maccr);
 }
 
