@@ -1101,7 +1101,7 @@
 			pinctrl-0 = <&pinctrl_ftuart010_6>;
 			pinctrl-names = "sleep";
 			serial = <6>;
-			status = "disabled";
+			status = "okay";
 		};
 		
 		uart7: uart@56b00000 {
