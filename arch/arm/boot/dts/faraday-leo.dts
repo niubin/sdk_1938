@@ -427,9 +427,10 @@
 #if 0
 			LEO_Mode_X_GPIO0_18
 			LEO_Mode_X_GPIO0_17
-#endif
+
 			LEO_Mode_X_GPIO0_3
 			LEO_Mode_X_GPIO0_2
+#endif
 		>;
 		
 		pinctrl_ftcan010: pinctrl_ftcan010 {
