@@ -466,12 +466,21 @@ static enum skb_state defer_bh(struct usbnet *dev, struct sk_buff *skb,
 void usbnet_defer_kevent (struct usbnet *dev, int work)
 {
 	set_bit (work, &dev->flags);
+#if 0
 	if (!schedule_work (&dev->kevent)) {
 		if (net_ratelimit())
 			netdev_err(dev->net, "kevent %d may have been dropped\n", work);
 	} else {
 		netdev_dbg(dev->net, "kevent %d scheduled\n", work);
 	}
+#endif
+	
+       /* If work is already started this will mark it to run again when it
+	* finishes; if we already had work pending and it hadn't started
+	* yet then that's fine too.
+	*/
+	schedule_work (&dev->kevent);
+	netdev_dbg(dev->net, "kevent %d scheduled\n", work);
 }
 EXPORT_SYMBOL_GPL(usbnet_defer_kevent);
 
