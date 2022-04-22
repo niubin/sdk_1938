@@ -1,0 +1,7 @@
+config SERIAL_WK2XXX
+        tristate "serial wk2xxx"
+        depends on SERIAL_8250 
+        help
+          Say Y here if you have wk2xxx serial. If unsure, say N.
+
+

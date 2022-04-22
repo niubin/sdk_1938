@@ -623,8 +623,8 @@
 				//LEO_PIN_X_UART8_RX_h     //GPIO1[14] - Mode6
 				//LEO_PIN_X_RMII0_MDIO      //GPIO1[14] - Mode3 / Mode5 / Mode7
 				LEO_PIN_X_MII_TX_ER      //GPIO1[15] - Mode7
-				//LEO_PIN_X_MII_TXD_2      //GPIO1[16] - Mode7
-				//LEO_PIN_X_MII_TXD_3      //GPIO1[17] - Mode7
+				LEO_PIN_X_MII_TXD_2      //GPIO1[16] - Mode7
+				LEO_PIN_X_MII_TXD_3      //GPIO1[17] - Mode7
 				//LEO_PIN_X_MII_CRS        //GPIO1[18] - Mode7
 				//LEO_PIN_X_MII_COL        //GPIO1[19] - Mode7
 				//LEO_PIN_X_MII_TXD_0      //GPIO1[23] - Mode7
@@ -1040,15 +1040,12 @@
 			rs485-dir-gpios = <35>;
 			status = "okay";
 		};
-		
+#if 0		
 		uart3: uart@55100000 {
 			compatible = "of_serial", "ns16550a";
 			interrupt-parent = <&gic>;
 			clock-frequency = <58823529>;
 			reg = <0x55100000 0x1000>;
-			reg-offset = <0>;
-			reg-shift = <2>;
-			reg-io-width = <4>;
 			no-loopback-test;
 			interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
 			serial = <3>;
@@ -1056,7 +1053,20 @@
 			//led-gpios = <21>;
 			status = "okay";
 		};
-		
+#endif		
+		uart3: uart@55100000 {
+			compatible = "smartchip,wk2xxx";
+			interrupt-parent = <&gic>;
+			clock-frequency = <58823529>;
+			reg = <0x55100000 0x1000>;
+			interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
+			reset-gpio = <&gpio1 17 GPIO_ACTIVE_HIGH>; 
+			irq-gpio = <&gpio1 16 IRQ_TYPE_LEVEL_LOW>;
+			rs485-1-dir-gpio = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+			rs485-2-dir-gpio = <&gpio1 15 GPIO_ACTIVE_HIGH>;
+			status = "okay";
+		};
+
 		uart4: uart@55200000 {
 			compatible = "of_serial", "ns16550a";
 			interrupt-parent = <&gic>;
@@ -1284,7 +1294,7 @@
 			interrupts = <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&spiclk>;
 			clock-names = "spiclk";
-			status = "okay";
+			status = "disabled";
 		};
 
 
