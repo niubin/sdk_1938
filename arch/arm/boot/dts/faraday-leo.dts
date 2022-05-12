@@ -569,7 +569,7 @@
 				//LEO_PIN_X_UART2_NRTS     //GPIO0[19] - ModeX 
 				//LEO_PIN_X_LC_DATA_16     //GPIO0[20] - Mode5 / Mode7
 				//LEO_PIN_X_UART2_NCTS     //GPIO0[20] - ModeX
-				//LEO_PIN_X_LC_DATA_17     //GPIO0[21] - Mode5 / Mode7
+				LEO_PIN_X_LC_DATA_17     //GPIO0[21] - Mode5 / Mode7
 				//LEO_PIN_X_LC_DATA_18     //GPIO0[22] - Mode5 / Mode7
 				//LEO_PIN_X_I2S0_RXD       //GPIO0[22] - ModeX /GPIO1[12] - Mode2
 				//LEO_PIN_X_I2S0_SCLK      //GPIO0[23] - ModeX /GPIO1[13] - Mode2
@@ -1456,7 +1456,7 @@
 			clocks = <&sspclk>;
 			clock-names = "sspclk";
 			dev_id = <7>;
-			status = "disabled";
+			status = "okay";
 			
 			#address-cells = <1>;
 			#size-cells = <0>;
