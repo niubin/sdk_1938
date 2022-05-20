@@ -58,6 +58,7 @@ struct ftssp010_spi {
 	u32                 rev;
 	u8                  txfifo_depth;
 	u8                  rxfifo_depth;
+	u8                  half_duplex;
 
 #ifdef CONFIG_SPI_FTSSP010_USE_INT
 	struct completion   c;
@@ -168,6 +169,7 @@ static int ftssp010_spi_setup_transfer(struct spi_device *spi, struct spi_transf
 	unsigned long bits_per_word;
 	unsigned long div;
 	unsigned long clk;
+
 	speed = spi->max_speed_hz;
 	bits_per_word = spi->bits_per_word;
 
@@ -283,16 +285,19 @@ static inline int ftssp010_wait_txfifo_ready(struct ftssp010_spi *priv)
 	unsigned long timeout;
 	int ret = -1;
 
-	for (timeout = jiffies + HZ; jiffies < timeout; ) {
-		if (!(readl(&regs->sr) & SR_TFNF)) {
-#ifdef CONFIG_MACH_LEO_VP
-			usleep_range(1,5);
-#endif
-			continue;
+	timeout = jiffies + msecs_to_jiffies(1000);
+
+	do {
+		if ((readl(&regs->sr) & SR_TFNF)) {
+			ret = 0;
+			break;
 		}
-		ret = 0;
-		break;
-	}
+#ifdef CONFIG_MACH_LEO_VP
+		usleep_range(1,5);
+#else
+		cond_resched();
+#endif
+	} while (time_before(jiffies, timeout));
 
 	if (ret)
 		dev_err(priv->dev, "Wait TXFIFO timeout\n");
@@ -319,23 +324,15 @@ static inline int ftssp010_wait_rxfifo_ready(struct ftssp010_spi *priv)
 	return ret;
 }
 
-static int ftssp010_spi_hard_xfer8_v2(struct spi_device *spi,
+static int ftssp010_spi_hard_xfer8_v2_hdx(struct spi_device *spi,
 	const u8 *tx_buf, u8 *rx_buf, u32 count)
 {
 	struct ftssp010_spi *priv = spi_master_get_devdata(spi->master);
 	struct ftssp010_regs *regs = priv->mmio;
-	u32 i, mask,size,wsize, wcount;
-	u32 ret;
-#ifdef CONFIG_SPI_FTSSP010_USE_DMA
-	struct dma_chan *chan;
-	struct scatterlist sg;
-	struct dma_async_tx_descriptor *desc;
-	u32 tmp;
+	u32 i, mask, size, wsize;
+	u32 ret, tmp;
 
 	spin_lock(&priv->lock);
-
-	chan = priv->dma_chan;
-#endif
 
 #ifdef CONFIG_SPI_FTSSP010_USE_INT
 	init_completion(&priv->c);
@@ -358,51 +355,29 @@ static int ftssp010_spi_hard_xfer8_v2(struct spi_device *spi,
 		mask |= CR2_RXEN;
 
 	while (count > 0) {
-		wcount = 0;
 
 		// Handle tx event
 		if (tx_buf) {
-#ifdef CONFIG_SPI_FTSSP010_USE_DMA
-			size = min_t(int, count, FTSSP010_DMA_BUF_SIZE);
-
-			priv->dma_sts = DMA_ONGOING;
-			memcpy(priv->dma_buf, tx_buf, size);
-			sg_init_one(&sg, dma_to_virt(priv->dev, priv->dmaaddr), size);
-			sg_dma_address(&sg) = priv->dmaaddr;
-			priv->slave.common.direction = DMA_TO_DEVICE;
-			priv->slave.common.src_addr = priv->dmaaddr;
-			priv->slave.common.dst_addr = priv->phys_io_port;
-			priv->slave.common.src_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE;
-			priv->slave.common.dst_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE;
-			priv->slave.common.src_maxburst = priv->txfifo_depth;
-
-			desc = chan->device->device_prep_slave_sg(chan, &sg, 1, DMA_TO_DEVICE,
-			                                          DMA_PREP_INTERRUPT | DMA_CTRL_ACK, NULL);
-			if (desc == NULL) {
-				dev_err(priv->dev, "TX DMA prepare slave sg failed\n");
-				spin_unlock(&priv->lock);
-				return -EINVAL;
-			}
-			desc->callback = ftssp010_dma_callback;
-			desc->callback_param = priv;
-			desc->tx_submit(desc);
-			chan->device->device_issue_pending(chan);
-
-			if (ftssp010_dma_wait(priv) == 0) {
-				dev_err(priv->dev, "TX Wait DMA timeout\n");
-				spin_unlock(&priv->lock);
-				return -ETIMEDOUT;
-			}
-
-			tx_buf += (size * 1);
-#else
-			size = min_t(u32, priv->txfifo_depth - SR_TFVE(readl(&regs->sr)), count / wsize);
+			size = min_t(u32, priv->txfifo_depth, count / wsize);
 			for (i = 0; i < size; ++i) {
 				ftssp010_write_word(&regs->dr, tx_buf, wsize);
 				tx_buf += wsize;
-				wcount ++;
 			}
+			
+			if (priv->master->slave) {
+				ret = ftssp010_wait_tx_idle(priv, spi->master->slave, msecs_to_jiffies(1000));
+			} else {
+#ifdef CONFIG_SPI_FTSSP010_USE_INT
+				ret = wait_for_completion_timeout(&priv->c, msecs_to_jiffies(1000));
+#else
+				ret = ftssp010_wait_tx_idle(priv, spi->master->slave, msecs_to_jiffies(1000));
 #endif
+			}
+			if (!ret) {
+				dev_err(priv->dev, "tx_buf Wait TX idle timeout(0x%x)\n", readl(&regs->sr));
+				ret = -ETIMEDOUT;
+				goto out;
+			}
 		}
 
 		// Set control register #2 now
@@ -414,82 +389,19 @@ static int ftssp010_spi_hard_xfer8_v2(struct spi_device *spi,
 
 		// Handle rx event
 		if (rx_buf) {
-			size = min_t(u32, priv->rxfifo_depth - SR_RFVE(readl(&regs->sr)), count / wsize);
+			size = min_t(u32, priv->txfifo_depth, count / wsize);
 			// Write dummy data to control rx data quantity in master mode
 			if (!spi_controller_is_slave(priv->master)) {
-				for (i = 0; i < size - wcount; ++i) {
-					ftssp010_wait_txfifo_ready(priv);
+				for (i = 0; i < size; ++i) {
+					while (ftssp010_wait_txfifo_ready(priv)) {
+						cond_resched();
+					}
 					writel(0x0, &regs->dr);	//Dummy write
 				}
 			}
 
-#ifdef CONFIG_SPI_FTSSP010_USE_DMA
-			int dma_map, mod_len;
-
-			dma_map = virt_addr_valid(rx_buf) && !((int)rx_buf & 3);
-			size = min_t(int, count, FTSSP010_DMA_BUF_SIZE);
-
-			/* DMA read unit is 4 bytes(1 word), if read length
-			 * not multiple of 4 bytes, add more bytes to make it
-			 * becomes multiple of 4, but do not copy them to rx_buf.
-			 */
-			mod_len = size & 0x3;
-			if (mod_len)
-				mod_len = 4 - mod_len;
-
-			if (dma_map) {
-				sg_init_one(&sg, (void *)rx_buf, (size + mod_len));
-
-				tmp = dma_map_sg(priv->dev, &sg, 1, DMA_FROM_DEVICE);
-				if (!tmp) {
-					dev_err(priv->dev, "dma_map_sg failed\n ");
-					return -EINVAL;
-				}
-			} else {
-				sg_init_one(&sg, dma_to_virt(priv->dev, priv->dmaaddr),
-				            (size + mod_len));
-				sg_dma_address(&sg) = priv->dmaaddr;
-			}
-
-			priv->dma_sts = DMA_ONGOING;
-			priv->slave.common.direction = DMA_FROM_DEVICE;
-			priv->slave.common.src_addr = priv->phys_io_port;
-			priv->slave.common.src_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
-			priv->slave.common.dst_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
-			priv->slave.common.src_maxburst = priv->rxfifo_depth / 4;
-
-			desc = chan->device->device_prep_slave_sg(chan, &sg, 1, DMA_FROM_DEVICE,
-			                                          DMA_PREP_INTERRUPT | DMA_CTRL_ACK, NULL);
-			if (desc == NULL) {
-				dev_err(priv->dev, "RX DMA prepare slave sg failed\n");
-				return -EINVAL;
-			}
-			desc->callback = ftssp010_dma_callback;
-			desc->callback_param = priv;
-			desc->tx_submit(desc);
-			chan->device->device_issue_pending(chan);
-
-			if (ftssp010_dma_wait(priv) <= 0) {
-				if (dma_map) {
-					dma_unmap_sg(priv->dev, &sg, 1, DMA_FROM_DEVICE);
-					dev_err(priv->dev, "DMA_MAP: RX Wait DMA timeout\n");
-				} else {
-					dev_err(priv->dev, "RX Wait DMA timeout\n");
-				}
-				return -ETIMEDOUT;
-			}
-
-			if (dma_map) {
-				dma_unmap_sg(priv->dev, &sg, 1, DMA_FROM_DEVICE);
-			} else {
-				memcpy(rx_buf, priv->dma_buf, size);
-			}
-
-			rx_buf += (size * 4);
-#else
-			size = min_t(u32, priv->rxfifo_depth, count / wsize);
 			for (i = 0; i < size; ++i) {
-				while (!SR_RFVE(readl(&regs->sr))) {
+				while (SR_RFVE(readl(&regs->sr)) == 0) {
 #ifdef CONFIG_MACH_LEO_VP
 					usleep_range(1, 5);
 #else
@@ -501,18 +413,71 @@ static int ftssp010_spi_hard_xfer8_v2(struct spi_device *spi,
 //					printk("slave rx: 0x%x\n", *rx_buf);
 				rx_buf += wsize;
 			}
-#endif
+
+			while (SR_RFVE(readl(&regs->sr))) {
+				dev_err(priv->dev, "rx_buf RFVE is not empty(0x%x)\n", readl(&regs->sr));
+				ftssp010_read_word(&regs->dr, &tmp, wsize);
+			}
+
+			clrbits_le32(&regs->cr[2], CR2_RXEN);
 		}
 
-#ifdef CONFIG_SPI_FTSSP010_USE_DMA
-		count -= size;
-#else
 		count -= (size * wsize);
-#endif
 	}
 
-	// Wait TFVE empty before disabling SSP core
-	if (tx_buf && SR_TFVE(readl(&regs->sr))) {
+	spin_unlock(&priv->lock);
+
+	return 0;
+out:
+	clrbits_le32(&regs->cr[2], CR2_RXEN);
+	spin_unlock(&priv->lock);
+	return ret;
+}
+
+static int ftssp010_spi_hard_xfer8_v2_fdx(struct spi_device *spi,
+	const u8 *tx_buf, u8 *rx_buf, u32 count)
+{
+	struct ftssp010_spi *priv = spi_master_get_devdata(spi->master);
+	struct ftssp010_regs *regs = priv->mmio;
+	u32 i, size, wsize;
+	u32 ret, tmp;
+
+	if(NULL == regs) {
+		return -ETIMEDOUT;
+	}
+
+	spin_lock(&priv->lock);
+
+#ifdef CONFIG_SPI_FTSSP010_USE_INT
+	init_completion(&priv->c);
+#endif
+
+	if (priv->bits_per_word <= 8)
+		wsize = 1;
+	else if (priv->bits_per_word <= 16)
+		wsize = 2;
+	else
+		wsize = 4;
+
+	// The transfer count should be multiple of wsize
+	if (count % wsize)
+		count += (wsize - (count % wsize));
+
+	// Set control register #2 now
+	setbits_le32(&regs->cr[2], CR2_RXEN);
+
+	dev_dbg(priv->dev, "cr0: 0x%08x cr1: 0x%08x cr2: 0x%08x\n",
+	        readl(&regs->cr[0]), readl(&regs->cr[1]), readl(&regs->cr[2]));
+
+	while (count > 0) {
+
+		// Handle tx event
+		size = min_t(u32, priv->txfifo_depth, count / wsize);
+		for (i = 0; i < size; ++i) {
+			ftssp010_write_word(&regs->dr, tx_buf, wsize);
+			tx_buf += wsize;
+		}
+		
 		if (priv->master->slave) {
 			ret = ftssp010_wait_tx_idle(priv, spi->master->slave, msecs_to_jiffies(1000));
 		} else {
@@ -527,17 +492,36 @@ static int ftssp010_spi_hard_xfer8_v2(struct spi_device *spi,
 			ret = -ETIMEDOUT;
 			goto out;
 		}
+
+		// Handle rx event
+		for (i = 0; i < size; ++i) {
+			while (SR_RFVE(readl(&regs->sr)) == 0) {
+#ifdef CONFIG_MACH_LEO_VP
+				usleep_range(1, 5);
+#else
+				cond_resched();
+#endif
+			}
+			ftssp010_read_word(&regs->dr, rx_buf, wsize);
+//			if (spi_controller_is_slave(priv->master))
+//				printk("slave rx: 0x%x\n", *rx_buf);
+			rx_buf += wsize;
+		}
+
+		while (SR_RFVE(readl(&regs->sr))) {
+			dev_err(priv->dev, "RFVE is not empty(0x%x)\n", readl(&regs->sr));
+			ftssp010_read_word(&regs->dr, &tmp, wsize);
+		}
+
+		count -= (size * wsize);
 	}
 
-	clrbits_le32(&regs->cr[2], CR2_RXEN);
-
-#ifdef CONFIG_SPI_FTSSP010_USE_DMA
 	spin_unlock(&priv->lock);
-#endif
 
 	return 0;
 out:
 	clrbits_le32(&regs->cr[2], CR2_RXEN);
+	spin_unlock(&priv->lock);
 	return ret;
 }
 
@@ -580,9 +564,18 @@ static unsigned int ftssp010_spi_hard_xfer(struct spi_device *spi,
 	unsigned int count = xfer->len;
 	const void *tx = xfer->tx_buf;
 	void *rx = xfer->rx_buf;
+
 	if (priv->rev >= 0x00011900) {
-		if (ftssp010_spi_hard_xfer8_v2(spi, tx, rx, count) < 0)
-			goto out;
+		if (priv->half_duplex) {
+			if (ftssp010_spi_hard_xfer8_v2_hdx(spi, tx, rx, count) < 0)
+				goto out;
+		} else {
+			if (!tx || !rx) {
+				goto out;
+			}
+			if (ftssp010_spi_hard_xfer8_v2_fdx(spi, tx, rx, count) < 0)
+				goto out;
+		}
 	} else {
 		if (ftssp010_spi_hard_xfer8_v1(spi, tx, rx, count) < 0)
 			goto out;
@@ -595,9 +588,6 @@ out:
 
 static int ftssp010_spi_setup(struct spi_device *spi)
 {
-	struct ftssp010_spi *priv = spi_master_get_devdata(spi->controller);
-	struct ftssp010_regs *regs = priv->mmio;
-	unsigned long val;
 	if (spi->bits_per_word == 0) {
 		dev_err(&spi->dev, "setup: invalid transfer bits_per_word\n");
 		return -EINVAL;
@@ -608,15 +598,6 @@ static int ftssp010_spi_setup(struct spi_device *spi)
 		return -EINVAL;
 	}
 
-	// Setup FS polarity
-	val = readl(&regs->cr[2]);
-	if (spi->mode & SPI_CS_HIGH) {
-		val &= ~CR2_FS;    // active high
-	} else {
-		val |= CR2_FS;     // active low
-	}
-	writel(val, &regs->cr[2]);
-
 	return 0;
 }
 
@@ -625,6 +606,7 @@ static int ftssp010_spi_prepare_transfer_hardware(struct spi_controller *ctlr)
 	struct ftssp010_spi *priv = spi_master_get_devdata(ctlr);
 	struct ftssp010_regs *regs = priv->mmio;
 	unsigned long mode = 0;
+
 	if (ctlr->cur_msg->spi->mode & SPI_CPHA)
 		mode |= CR0_SCLKPH;
 	if (ctlr->cur_msg->spi->mode & SPI_CPOL)
@@ -662,6 +644,7 @@ static void ftssp010_spi_set_cs(struct spi_device *spi, bool enable)
 	struct ftgpio010_regs *gpio = priv->gpio;
 	uint32_t mask = BIT_MASK(spi->chip_select);
 	uint32_t val;
+
 	if (spi_controller_is_slave(spi->master))
 		return;
 
@@ -691,6 +674,21 @@ static int ftssp010_spi_xfer_one(struct spi_master *master,
 	int status = 0;
 	int len;
 
+	if (NULL == &spi->dev) {
+		printk("No dev of spi\n");
+		return -EINVAL;
+	}
+
+	if (!t->tx_buf && !t->rx_buf) {
+		dev_err(&spi->dev, "No buffer for transfer\n");
+		return -EINVAL;
+	}
+
+	if (t->len > 0xffff) {
+		dev_err(&spi->dev, "Transfer is too long (%d)\n", t->len);
+		return -EINVAL;
+	}
+
 	if (t->speed_hz || t->bits_per_word) {
 		status = ftssp010_spi_setup_transfer(spi, t);
 		if (status < 0)
@@ -706,6 +704,8 @@ static int ftssp010_spi_xfer_one(struct spi_master *master,
 
 static int ftssp010_hw_setup(struct ftssp010_spi *priv, resource_size_t phys_base)
 {
+	struct ftssp010_regs *regs = priv->mmio;
+	uint32_t val;
 #ifdef CONFIG_SPI_FTSSP010_USE_DMA
 	struct device *dev = priv->dev; 
 	struct dma_chan *dma_chan;
@@ -784,7 +784,6 @@ static int ftssp010_spi_probe(struct platform_device *pdev)
 	struct ftssp010_regs *regs;
 	struct resource *res, *res1;
 	struct clk *clk;
-	unsigned long val;
 	int rc = -ENOMEM;
 	u32 dev_id;
 
@@ -829,6 +828,11 @@ static int ftssp010_spi_probe(struct platform_device *pdev)
 	priv->max_speed = priv->clk / 2;
 	priv->min_speed = priv->clk / 0x20000;
 
+	if (of_property_read_bool(np, "half-duplex"))
+		priv->half_duplex = 1;
+	else
+		priv->half_duplex = 0;
+
 	spin_lock_init(&priv->lock);
 
 	/* ftssp010 io-remap */
@@ -867,7 +871,8 @@ static int ftssp010_spi_probe(struct platform_device *pdev)
 	/* check revision id */
 	regs = priv->mmio;
 	priv->rev = readl(&regs->revr);
-	dev_info(&pdev->dev, "%s mode (rev. 0x%08x)\n",
+	dev_info(&pdev->dev, "%s %s mode (rev. 0x%08x)\n",
+	         priv->half_duplex ? "half-duplex" : "full-duplex",
 	         priv->master->slave ? "slave" : "master", priv->rev);
 
 	/* check tx/rx fifo depth */
@@ -883,11 +888,6 @@ static int ftssp010_spi_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed at spi_register_master(...)\n");
 		goto out_free_irq;
 	}
-
-	// Setup FS polarity
-	val = readl(&regs->cr[0]);
-	val |= CR0_FFMT_SPI;          // select set SPI mode
-	writel(val, &regs->cr[0]);
 
 	return 0;
 
