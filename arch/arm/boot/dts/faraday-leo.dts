@@ -108,7 +108,7 @@
 		bootargs = "mem=2048M console=ttyS0,115200 earlycon=uart8250,mmio32,0x54e00000 root=/dev/mmcblk0p2 rw init=/sbin/init rootfstype=ext4";
 #if 0
                 bootargs = "mem=2048M console=ttyS0,115200 earlycon=uart8250,mmio32,0x54e00000 root=/dev/mmcblk0p2 rw init=/linuxrc rootfstype=ext4";
-               bootargs = "root=/dev/nfs   nfsroot=192.168.0.2:/home/niubin/rootfs,vers=3 ip=192.168.0.80:192.168.0.2:192.168.0.1:255.255.255.0::eth0:off init=/linuxrc mem=2048M console=ttyS0,115200 earlycon=uart8250,mmio32,0x54e00000";
+		 bootargs = "root=/dev/nfs   nfsroot=192.168.0.2:/home/zhangguang/workspace/nfs,vers=3 ip=192.168.0.80:192.168.0.2:192.168.0.1:255.255.255.0::eth0:off init=/sbin/init mem=2048M console=ttyS0,115200 earlycon=uart8250,mmio32,0x54e00000";
 #endif
 	};
 	
