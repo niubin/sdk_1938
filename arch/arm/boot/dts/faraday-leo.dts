@@ -1280,7 +1280,7 @@
 				105  100     600000   4
 				115  110     500000   4
 			>;
-			thermal-critical-trips = <140>;
+			thermal-critical-trips = <125>;
 			status = "okay";
 			#thermal-sensor-cells = <0>;
 		};

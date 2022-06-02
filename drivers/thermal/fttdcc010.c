@@ -323,7 +323,7 @@ static void fttdcc010_irq_th(struct fttdcc010_thermal_priv *priv)
 	for(i = 0; i < NUM_TDC; i++) {
 		ovr_intst = priv->pending & OVR_INTST(i);
 		undr_intst = priv->pending & UNDR_INTST(i);
-		if(!(ovr_intst && undr_intst))
+		if(!(ovr_intst || undr_intst))
 			continue;
 		
 		if(ovr_intst)
@@ -540,6 +540,7 @@ static int fttdcc010_probe(struct platform_device *pdev)
 		}
 		fttdcc010_populate_trips(zone->trips);
 		
+		list_add_tail(&zone->list, &priv->head);
 		zone->thermal = thermal_zone_device_register("fttdcc010_thermal", zone->ntrips, 1,
 		                                             priv, &ops, NULL, 1000, 2000);
 		if (IS_ERR(zone->thermal)) {
@@ -551,7 +552,6 @@ static int fttdcc010_probe(struct platform_device *pdev)
 		}
 		
 		zone->id = zone->thermal->id;
-		list_add_tail(&zone->list, &priv->head);
 
 		writel(HTHR_EN | HTHR(MCELSIUS(thermal_critical_trips)), &priv->regs->thrhold[i]);
 		writel(OVR_INTEN(i) | CHDONE_INTEN(i), &priv->regs->inten);	
