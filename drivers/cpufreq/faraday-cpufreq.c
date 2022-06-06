@@ -279,7 +279,7 @@ static int faraday_cpufreq_probe(struct platform_device *pdev)
             goto err_free_table;
     }
 
-	/* Make scm701d_soc_volt array's size same as arm opp number */
+	/* Make scm801_soc_volt array's size same as arm opp number */
 	scm801_soc_volt = devm_kzalloc(info->dev, sizeof(*scm801_soc_volt) * num, GFP_KERNEL);
 	if (scm801_soc_volt == NULL) {
 		ret = -ENOMEM;
