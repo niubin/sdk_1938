@@ -412,6 +412,7 @@
 		reg = <0x28000000 0xA000>;
 
 		scu010,modex = <
+			LEO_Mode_X_UART_8
 			LEO_Mode_X_GPIO0_26
 			LEO_Mode_X_GPIO0_25
 #if 0
@@ -1143,19 +1144,22 @@
 		};
 		
 		uart8: uart_sir@56c00000 {
-			compatible = "faraday,ftuart010_sir";
-			interrupt-parent = <&gic>;
-			reg = <0x56c00000 0x1000>;
-			interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
-			baud = <115200>;
-			clock-names = "irda";
-			clocks = <&irdaclk>;
-			pinctrl-0 = <&pinctrl_ftuart010_8>;
-			pinctrl-names = "default";
-			serial = <8>;
-			status = "disabled";
-		};
-		
+                       compatible = "of_serial", "ns16550a";
+                       interrupt-parent = <&gic>;
+                       clock-frequency = <58823529>;
+                       reg = <0x56c00000 0x1000>;
+                       interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+                       reg-offset = <0>;
+                       reg-shift = <2>;
+                       reg-io-width = <4>;
+                       no-loopback-test;
+                       pinctrl-0 = <&pinctrl_ftuart010_8>;
+                       pinctrl-names = "default";
+                       serial = <8>;
+                       status = "okay";
+              	 };
+
+	
 		uart9: uart@57100000 {
 			compatible = "of_serial", "ns16550a";
 			interrupt-parent = <&gic>;
@@ -1567,7 +1571,7 @@
 			clock-frequency = <100000000>; 
 			pinctrl-0 = <&pinctrl_ftcan010_1>;
 			pinctrl-names = "default";
-			status = "okay";
+			status = "disabled";
 		};
 		
 		usb0: usb_hcd@10200000 {
