@@ -12,7 +12,6 @@
  *
  *     - JMicron (hardware and technical support)
  */
-
 #include <linux/delay.h>
 #include <linux/ktime.h>
 #include <linux/highmem.h>
@@ -2435,6 +2434,28 @@ static void sdhci_card_event(struct mmc_host *mmc)
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
+static int sdhci_set_sdio_status(struct mmc_host *mmc, int val)
+{
+	struct sdhci_host *host = mmc_priv(mmc);
+
+	if (!(mmc->restrict_caps & RESTRICT_CARD_TYPE_SDIO))
+	{
+		pr_err("restrict_caps is not RESTRICT_CARD_TYPE_SDIO!\n");
+		return 0;
+	}
+
+
+        if (val)
+                host->flags |= SDHCI_PV_ENABLED;
+        else
+                host->flags &= ~SDHCI_PV_ENABLED;
+
+        host->preset_enabled = val;
+	mmc_detect_change(mmc, 20);
+
+	return 0;
+}
+
 static const struct mmc_host_ops sdhci_ops = {
 	.request	= sdhci_request,
 	.post_req	= sdhci_post_req,
@@ -2449,6 +2470,7 @@ static const struct mmc_host_ops sdhci_ops = {
 	.execute_tuning			= sdhci_execute_tuning,
 	.card_event			= sdhci_card_event,
 	.card_busy	= sdhci_card_busy,
+	.set_sdio_status = sdhci_set_sdio_status,
 };
 
 /*****************************************************************************\
@@ -3880,15 +3902,12 @@ int sdhci_setup_host(struct sdhci_host *host)
 				   SDHCI_MAX_CURRENT_180_SHIFT) *
 				   SDHCI_MAX_CURRENT_MULTIPLIER;
 	}
-
 	/* If OCR set by host, use it instead. */
 	if (host->ocr_mask)
 		ocr_avail = host->ocr_mask;
-
 	/* If OCR set by external regulators, give it highest prio. */
 	if (mmc->ocr_avail)
 		ocr_avail = mmc->ocr_avail;
-
 	mmc->ocr_avail = ocr_avail;
 	mmc->ocr_avail_sdio = ocr_avail;
 	if (host->ocr_avail_sdio)
@@ -3974,7 +3993,6 @@ int sdhci_setup_host(struct sdhci_host *host)
 			mmc->max_blk_size = 0;
 		}
 	}
-
 	mmc->max_blk_size = 512 << mmc->max_blk_size;
 
 	/*

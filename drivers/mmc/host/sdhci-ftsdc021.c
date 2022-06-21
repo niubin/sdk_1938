@@ -23,6 +23,7 @@
 #include <plat/sd.h>
 
 #include "sdhci-pltfm.h"
+#include "sdhci.h"
 
 #define  DRIVER_NAME "ftsdc021"
 
@@ -234,6 +235,16 @@ static int ftsdc021_probe(struct platform_device *pdev)
 #ifdef EMMC_EMBEDDED
 	host->mmc->caps |= MMC_CAP_NONREMOVABLE;
 #endif
+	
+	if (of_property_read_bool(np, "supports-sdio"))
+		host->mmc->restrict_caps |= RESTRICT_CARD_TYPE_SDIO;
+	if (of_property_read_bool(np, "cap-removable"))
+	{
+		host->mmc->caps &= ~MMC_CAP_NONREMOVABLE;
+		host->quirks &= ~SDHCI_QUIRK_BROKEN_CARD_DETECTION;
+	}
+	mmc_of_parse_voltage(np, &host->ocr_mask);
+
 	ret = sdhci_add_host(host);
 	if (ret)
 		sdhci_pltfm_free(pdev);

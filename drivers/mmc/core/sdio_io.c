@@ -17,8 +17,7 @@
 
 #include "sdio_ops.h"
 #include "core.h"
-#include "card.h"
-
+#include "card.h" 
 /**
  *	sdio_claim_host - exclusively claim a bus for a certain SDIO function
  *	@func: SDIO function that will be accessed

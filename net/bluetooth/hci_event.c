@@ -35,6 +35,8 @@
 #include "a2mp.h"
 #include "amp.h"
 #include "smp.h"
+#include <linux/kprobes.h>
+#include <asm/traps.h>
 
 #define ZERO_KEY "\x00\x00\x00\x00\x00\x00\x00\x00" \
 		 "\x00\x00\x00\x00\x00\x00\x00\x00"
@@ -2438,8 +2440,7 @@ static void hci_auth_complete_evt(struct hci_dev *hdev, struct sk_buff *skb)
 		}
 	} else {
 		if (ev->status == HCI_ERROR_PIN_OR_KEY_MISSING)
-			set_bit(HCI_CONN_AUTH_FAILURE, &conn->flags);
-
+			set_bit(HCI_CONN_AUTH_FAILURE, &conn->flags);	
 		mgmt_auth_failed(conn, ev->status);
 	}
 

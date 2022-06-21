@@ -29,7 +29,7 @@
 #include <linux/random.h>
 #include <linux/slab.h>
 #include <linux/of.h>
-
+#include <asm-generic/gpio.h> 
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
@@ -2448,6 +2448,10 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 
 	pr_debug("%s: %s: trying to init card at %u Hz\n",
 		mmc_hostname(host), __func__, host->f_init);
+	(void)gpio_direction_output(57, 0);
+	mdelay(100);
+	(void)gpio_direction_output(57, 1);
+	mdelay(100);
 
 	mmc_power_up(host, host->ocr_avail);
 
@@ -2560,10 +2564,7 @@ void mmc_rescan(struct work_struct *work)
 	struct mmc_host *host =
 		container_of(work, struct mmc_host, detect.work);
 	int i;
-#if 0 //zg-20201102	
-	static int count = 0;
-	printk("@@@@@@@@@@@@@@@@  %s %s %d count:%d\n",__FILE__,__func__,__LINE__,count++);
-#endif
+
 	if (host->rescan_disable)
 		return;
 

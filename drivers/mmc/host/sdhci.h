@@ -592,6 +592,7 @@ struct sdhci_ops {
 	void    (*adma_workaround)(struct sdhci_host *host, u32 intmask);
 	void    (*card_event)(struct sdhci_host *host);
 	void	(*voltage_switch)(struct sdhci_host *host);
+	int     (*set_sdio_status)(struct mmc_host *host, int val);
 };
 
 #ifdef CONFIG_MMC_SDHCI_IO_ACCESSORS
