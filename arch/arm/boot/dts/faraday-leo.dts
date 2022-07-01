@@ -412,7 +412,6 @@
 		reg = <0x28000000 0xA000>;
 
 		scu010,modex = <
-			LEO_Mode_X_UART_8
 			LEO_Mode_X_GPIO0_26
 			LEO_Mode_X_GPIO0_25
 #if 0
@@ -1117,23 +1116,21 @@
 			serial = <7>;
 			status = "disabled";
 		};
-
+		
 		uart8: uart_sir@56c00000 {
-                       compatible = "of_serial", "ns16550a";
-                       interrupt-parent = <&gic>;
-                       clock-frequency = <58823529>;
-                       reg = <0x56c00000 0x1000>;
-                       interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
-                       reg-offset = <0>;
-                       reg-shift = <2>;
-                       reg-io-width = <4>;
-                       no-loopback-test;
-                       pinctrl-0 = <&pinctrl_ftuart010_8>;
-                       pinctrl-names = "default";
-                       serial = <8>;
-                       status = "okay";
-              	 };	
-
+			compatible = "faraday,ftuart010_sir";
+			interrupt-parent = <&gic>;
+			reg = <0x56c00000 0x1000>;
+			interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+			baud = <115200>;
+			clock-names = "irda";
+			clocks = <&irdaclk>;
+			pinctrl-0 = <&pinctrl_ftuart010_8>;
+			pinctrl-names = "default";
+			serial = <8>;
+			status = "disabled";
+		};
+		
 		uart9: uart@57100000 {
 			compatible = "of_serial", "ns16550a";
 			interrupt-parent = <&gic>;
@@ -1147,7 +1144,7 @@
 			pinctrl-0 = <&pinctrl_ftuart010_9>;
 			pinctrl-names = "sleep";
 			serial = <9>;
-			status = "okay";
+			status = "disabled";
 		};
 		
 		sys_timer0: timer@55300000 {
