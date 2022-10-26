@@ -2560,10 +2560,6 @@ void mmc_rescan(struct work_struct *work)
 	struct mmc_host *host =
 		container_of(work, struct mmc_host, detect.work);
 	int i;
-#if 0 //zg-20201102	
-	static int count = 0;
-	printk("@@@@@@@@@@@@@@@@  %s %s %d count:%d\n",__FILE__,__func__,__LINE__,count++);
-#endif
 	if (host->rescan_disable)
 		return;
 
