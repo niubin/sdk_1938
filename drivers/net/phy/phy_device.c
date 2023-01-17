@@ -609,10 +609,62 @@ phy_has_fixups_show(struct device *dev, struct device_attribute *attr,
 }
 static DEVICE_ATTR_RO(phy_has_fixups);
 
+
+static ssize_t 
+phy_regs_store(struct device *dev, struct device_attribute *att,
+			    const char *buf, size_t size)
+{
+	struct phy_device *phydev = to_phy_device(dev);
+	struct mdio_device * mdio = &phydev->mdio;
+	struct  mii_bus *bus = mdio->bus;
+	int  phy_addr = mdio->addr;
+	long reg_addr = 0;
+	int  reg_val = 0;
+	ssize_t		status;
+
+	status = kstrtol(buf, 0, &reg_addr);
+
+	if (status == 0) {
+		reg_val = mdiobus_read(bus, phy_addr, reg_addr);
+	}
+
+	pr_err("reg_val: 0x%x\n",reg_val);
+	return size;
+}
+static DEVICE_ATTR_WO(phy_regs);
+
+int mdiobus_read(struct mii_bus *bus, int addr, u32 regnum);
+int mdiobus_read_nested(struct mii_bus *bus, int addr, u32 regnum);
+int mdiobus_write(struct mii_bus *bus, int addr, u32 regnum, u16 val);
+int mdiobus_write_nested(struct mii_bus *bus, int addr, u32 regnum, u16 val);
+
+static ssize_t 
+phy_loopback_store(struct device *dev, struct device_attribute *att,
+			    const char *buf, size_t size)
+{
+	struct phy_device *phydev = to_phy_device(dev);
+	struct mdio_device * mdio = &phydev->mdio;
+	struct  mii_bus *bus = mdio->bus;
+	int  phy_addr = mdio->addr;
+	int  reg_val = 0;
+	
+	reg_val = mdiobus_read(bus, phy_addr, MII_BMCR);
+	pr_err("bmcr: 0x%x\n",reg_val);
+	reg_val |= (1 << 14);
+	mdiobus_write(bus, phy_addr, MII_BMCR, reg_val);
+	
+	reg_val = mdiobus_read(bus, phy_addr, MII_BMCR);
+	pr_err("bmcr: 0x%x\n",reg_val);
+	return size;
+}
+static DEVICE_ATTR_WO(phy_loopback);
+
 static struct attribute *phy_dev_attrs[] = {
 	&dev_attr_phy_id.attr,
 	&dev_attr_phy_interface.attr,
 	&dev_attr_phy_has_fixups.attr,
+	&dev_attr_phy_regs.attr,
+	&dev_attr_phy_loopback.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(phy_dev);

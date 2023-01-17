@@ -35,7 +35,7 @@ obj-$(CONFIG_SFI)		+= sfi/
 # was used and do nothing if so
 obj-$(CONFIG_PNP)		+= pnp/
 obj-y				+= amba/
-obj-y                           += mmc/ #zg-20201120 
+obj-y                           += mmc/ 
 obj-y				+= clk/
 # Many drivers will want to use DMA so this has to be made available
 # really early.

@@ -1436,17 +1436,6 @@ EXPORT_SYMBOL_GPL(sdhci_calc_clk);
 void sdhci_enable_clk(struct sdhci_host *host, u16 clk)
 {
 	ktime_t timeout;
-#if 0 //zg-20201029
-	printk("$$$$ %s %s %d clk:%d\n",__FILE__,__func__,__LINE__,clk);
-	//clk = 59584; //100K
-	//clk = 62528; //200K
-	//clk = 20032; //300K
-	//if(clk < 25600)
-    		//clk = 25600; //1M
-	//clk = 12800; //2M
-    	// clk = 2560; //10M
-        //clk = 1280; //20M
-#endif
 	clk |= SDHCI_CLOCK_INT_EN;
 	sdhci_writew(host, clk, SDHCI_CLOCK_CONTROL);
 
@@ -1484,10 +1473,7 @@ void sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 		return;
 	
 	clk = sdhci_calc_clk(host, clock, &host->mmc->actual_clock);
-#if 0 //zg-20201102
-	printk("$$$$ %s %s %d clock:%d\n",__FILE__,__func__,__LINE__,clock);
-#endif
-	
+
 	sdhci_enable_clk(host, clk);
 }
 EXPORT_SYMBOL_GPL(sdhci_set_clock);

@@ -213,7 +213,7 @@ static struct ftdmac030_desc *ftdmac030_alloc_desc(
 	struct ftdmac030_desc *desc;
 	dma_addr_t phys;
 
-	dev_dbg(chan2dev(chan), "%s\n", __func__);
+//	dev_dbg(chan2dev(chan), "%s\n", __func__);
 	
 	desc = dma_pool_alloc(ftdmac030->dma_desc_pool, gfp_flags, &phys);
 	if (desc) {
@@ -226,7 +226,7 @@ static struct ftdmac030_desc *ftdmac030_alloc_desc(
 		INIT_LIST_HEAD(&desc->child_list);
 		desc->ftchan = ftchan;
 	}
-	dev_dbg(chan2dev(chan), "%s desc = %p\n", __func__,desc);
+//	dev_dbg(chan2dev(chan), "%s desc = %p\n", __func__,desc);
 	return desc;
 }
 
@@ -2447,3 +2447,7 @@ module_exit(ftdmac030_exit);
 MODULE_AUTHOR("Po-Yu Chuang <ratbert@faraday-tech.com>");
 MODULE_DESCRIPTION("FTDMAC030 DMA engine driver");
 MODULE_LICENSE("GPL");
+
+
+
+
