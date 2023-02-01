@@ -1612,9 +1612,13 @@
 			interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
 			pulse-latch = <1>;
 			bus-width = <4>;
-			enable-8-bits;
-			broken-cd;
-			status = "disabled";
+		//	enable-8-bits;
+			no-mmc;
+			no-sdio;
+			voltage-ranges = <2700 3300>;
+			disable-wp;
+		//	broken-cd;
+			status = "okay";
 		};
 		
 		cryptomaster0:cryptomaster@28300000 {

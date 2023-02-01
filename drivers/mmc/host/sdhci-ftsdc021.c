@@ -234,6 +234,7 @@ static int ftsdc021_probe(struct platform_device *pdev)
 #ifdef EMMC_EMBEDDED
 	host->mmc->caps |= MMC_CAP_NONREMOVABLE;
 #endif
+	mmc_of_parse_voltage(np, &host->ocr_mask);
 	ret = sdhci_add_host(host);
 	if (ret)
 		sdhci_pltfm_free(pdev);
